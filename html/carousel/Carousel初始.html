@@ -36,8 +36,8 @@
 	<body>
 		<div id = 'carousel'></div>
 	</body>
-	<script type = 'text/javascript' src = '../../js/mouse-rotate.js'></script>
-	<script type = 'text/javascript' src = '../../js/debounce.js'></script>
+	<script type = 'text/javascript' src = '../../js/utils/mouse-rotate.js'></script>
+	<script type = 'text/javascript' src = '../../js/utils/debounce.js'></script>
 	<script type = 'text/javascript'>
 		function imgOnload(callback){
 			let imgWidth = this.width;
@@ -135,7 +135,7 @@
 		}
 	</script>
 	<script type = 'text/javascript'>
-		let imgArray = new Array(6).fill().map((item, index) => {
+		let imgArray = new Array(9).fill().map((item, index) => {
 			let img = new Image();
 //			let num = Math.random() * 9 + 1;
 //			img.src = num > 5 ? '../../image/ride.gif' : '../../image/card.jpg';
