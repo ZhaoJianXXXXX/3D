@@ -35,18 +35,8 @@
 			let _imgArr = [];
 			let _scene = undefined;			//3d容器
 			let _resize = undefined;
-			//工具类初始化方法
-			(function init(){
-				setScene();
-				setResizeFn();
-			})()
-			//即时适配浏览器宽高改变方法
-			function setResizeFn(){
-				_resize = debounce(() => this.imgRender(), 500);
-				window.addEventListener('resize', _resize);
-			}
 			//设置3d画布
-			function setScene(){
+			this.scene = _scene = (function(){
 				try{
 					container = container || document.body;
 					_scene = document.createElement('div');
@@ -60,7 +50,8 @@
 					console.error('container is not a HTML element');
 					console.error(e);
 				}
-			}
+				return _scene;
+			})()
 			/**
 			 * 图片属性设置方法
 			 * @parmas {array} imgArr [{ src: 'xxx' }, { src: 'yyy }]
@@ -100,22 +91,19 @@
 					let ty = offsetY*Math.cos(rad);
 					let tz = offsetZ*Math.cos(rad);
 					img.style.transform = `translateX(${tx}px) translateY(${ty}px) translateZ(${tz}px)`;
+//					img.style.transform = `translateX(${tx}px) translateZ(${tz}px)`;
 					img.style.position = 'absolute';
 					img.style.left = '0';
 					img.style.bottom = '0';
 					img.style.transition = 'all .3s';
-					img.onclick = function(){
-						_imgArr.map((clickImg, clickIndex) => {
-							clickImg.then((clickImgNode) => {
-								//找到点击的img元素(通过唯一标识index来判断)
-								if(clickImgNode.getAttribute('index') === this.getAttribute('index')){
-									rotateCarousel(this);
-								}
-							})
-						})
-					}
+					img.onclick = rotateCarousel.bind(null, img)
 					_scene.appendChild(img);
 				}));
+				//在渲染过后增加浏览器resize事件
+				if(typeof _resize !== 'function'){
+					_resize = debounce(() => this.imgRender(), 500);
+					window.addEventListener('resize', _resize);
+				}
 			}
 			/**
 			 * 图片元素点击之后的轮转方法
@@ -188,17 +176,15 @@
 				this.imgRender();
 				return this;
 			}
-
-			this.scene = _scene;
 		}
 	</script>
 	<script type = 'text/javascript'>
 //		let imgArray = new Array(6).fill().map(() => ({ src: './image/ride.gif' }))
 		let imgArray = new Array(12).fill().map(() => {
-//			let num = Math.random() * 9 + 1;
-//			let src = num > 5 ? '../../image/ride.gif' : '../../image/card.jpg';
+			let num = Math.random() * 9 + 1;
+			let src = num > 5 ? '../../image/ride.gif' : '../../image/card.jpg';
 //			let src = '../../image/ride.gif';
-			let src = '../../image/card1.png';
+//			let src = '../../image/card1.png';
 			return { src };
 		})
 		let fatherNode = document.getElementById('carousel');
