@@ -27,10 +27,11 @@
 		//将旋转木马作为工具类进行了封装
 		function Carousel(props = {}){
 			let {
-				container,
-				offsetY,
-				offsetZ,
+				container = document.body,
+				offsetY = 100,
+				offsetZ = 100,
 				imgProps,
+				interval = 300,
 			} = props;
 			let _imgArr = [];
 			let _scene = undefined;			//3d容器
@@ -139,7 +140,7 @@
 							let t = setTimeout(() => {
 								clearTimeout(t);
 								rerenderLeft(_imgArr, position);
-							}, 300);
+							}, interval);
 						})
 					}
 				}
@@ -164,7 +165,7 @@
 							let t = setTimeout(() => {
 								clearTimeout(t);
 								rerenderRight(_imgArr, position);
-							}, 300);
+							}, interval);
 						})
 					}
 				}
@@ -190,9 +191,10 @@
 		let fatherNode = document.getElementById('carousel');
 		let carousel = new Carousel({
 			container: document.body,
-			offsetY: 150,
-			offsetZ: 200,
-			imgProps : { width: 240, height: 180 }
+//			offsetY: 150,
+//			offsetZ: 200,
+			imgProps : { width: 240, height: 180 },
+			interval: 300
 		});
 		carousel.setImgArr(imgArray).imgRender();
 		carousel.scene.addEventListener('mousedown', window.mouseRotate.bind(carousel.scene));
