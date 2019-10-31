@@ -18,41 +18,39 @@
 				perspective: 800px;
 				overflow: hidden;
 			}
+			#carousel{
+				position: relative;
+				transform-style: preserve-3d;
+				width: 80%;
+				height : 240px;
+				transition: all .3s;
+			}
+			#carousel>img{
+				position: absolute;
+				left: 0;
+				bottom : 0;
+				transition: all .3s;
+			}
 		</style>
 	</head>
-	<body></body>
+	<body>
+		<div id = 'carousel'></div>
+	</body>
 	<script type = 'text/javascript' src = '../../js/utils/mouse-rotate.js'></script>
 	<script type = 'text/javascript' src = '../../js/utils/debounce.js'></script>
 	<script type = 'text/javascript'>
-		//将旋转木马作为工具类进行了封装
+		//旋转木马类
 		function Carousel(props = {}){
 			let {
-				container = document.body,
-				offsetY = 100,
-				offsetZ = 100,
+				fatherNode,
+				offsetY,
+				offsetZ,
 				imgProps,
-				interval = 300,
 			} = props;
 			let _imgArr = [];
-			let _scene = undefined;			//3d容器
-			let _resize = undefined;
-			//设置3d画布
-			this.scene = _scene = (function(){
-				try{
-					container = container || document.body;
-					_scene = document.createElement('div');
-					_scene.style.position = 'relative';
-					_scene.style.transformStyle = 'preserve-3d';
-					_scene.style.width = '80%';
-					_scene.style.height = '240px';
-					_scene.style.transition = 'all .3s';
-					container.appendChild(_scene)
-				}catch(e){
-					console.error('container is not a HTML element');
-					console.error(e);
-				}
-				return _scene;
-			})()
+			let _imgArrPromise = new Promise(resolve => resolve([]));
+			let resize = debounce(() => this.imgRender(), 500);
+			window.addEventListener('resize', resize);
 			/**
 			 * 图片属性设置方法
 			 * @parmas {array} imgArr [{ src: 'xxx' }, { src: 'yyy }]
@@ -61,8 +59,8 @@
 				_imgArr = imgArr.map((item, index) => {
 					let img = new Image();
 					img.src = item.src;
-					img.setAttribute('index', index);			//设置img的唯一标识
-					img.setAttribute('position', index);		//当前img所在的位置 从最前方开始逆时针递增(0->n)
+					img.setAttribute('index', index);		//这是每张图片的主键
+					img.setAttribute('position', index);	//这是每张图片所在位置的索引 初始化时与主键位置一致
 					return new Promise(resolve => {
 						img.onload = function(){
 							this.height = imgProps && imgProps.height || this.height;
@@ -71,6 +69,7 @@
 						}
 					})
 				});
+				_imgArrPromise = Promise.all(_imgArr);
 				return this;
 			}
 			/**
@@ -79,12 +78,12 @@
 			 */
 			this.imgRender = function(){
 				//清除所有子节点
-				while(_scene.hasChildNodes()){ _scene.removeChild(_scene.firstChild) }
+				while(fatherNode.hasChildNodes()){ fatherNode.removeChild(fatherNode.firstChild) }
 				let _this = this;
-				let fatherWidth = _scene.offsetWidth;
+				let fatherWidth = fatherNode.offsetWidth;
 				let singleRad = Math.PI * 2 / _imgArr.length;
 				let firstPoint = { ty: offsetY, tz: offsetZ };
-				Promise.all(_imgArr).then(val => val.map((img) => {
+				let test = _imgArrPromise.then(val => val.map((img) => {
 					firstPoint.tx = (fatherWidth-img.width)/2;
 					let index = img.getAttribute('index');
 					let rad = singleRad*index;
@@ -92,19 +91,17 @@
 					let ty = offsetY*Math.cos(rad);
 					let tz = offsetZ*Math.cos(rad);
 					img.style.transform = `translateX(${tx}px) translateY(${ty}px) translateZ(${tz}px)`;
-//					img.style.transform = `translateX(${tx}px) translateZ(${tz}px)`;
-					img.style.position = 'absolute';
-					img.style.left = '0';
-					img.style.bottom = '0';
-					img.style.transition = 'all .3s';
-					img.onclick = rotateCarousel.bind(null, img)
-					_scene.appendChild(img);
+					img.onclick = function(){
+						_imgArr.map((clickImg, clickIndex) => {
+							clickImg.then((clickImgNode) => {
+								if(clickImgNode.getAttribute('index') === this.getAttribute('index')){
+									rotateCarousel(this)
+								}
+							})
+						})
+					}
+					fatherNode.appendChild(img);
 				}));
-				//在渲染过后增加浏览器resize事件
-				if(typeof _resize !== 'function'){
-					_resize = debounce(() => this.imgRender(), 500);
-					window.addEventListener('resize', _resize);
-				}
 			}
 			/**
 			 * 图片元素点击之后的轮转方法
@@ -125,22 +122,24 @@
 				 */
 				function rerenderLeft(_imgArr, position){
 					if(position > 0){
-						Promise.all(_imgArr).then(val => {
+						_imgArrPromise.then(val => {
+							//存储在未移动前每个图片的transform
 							let array = val.map((item) => item.style.transform);
 							val.map((img, i) => {
-								//数组元素中存有每img的样式，需要错位赋值(当前元素按照position与前一个元素交换)
+								//数组元素中存有每img的样式，需要错位赋值
 								let index = i === 0 ? array.length-1 : i-1;
-								//position的替换 不能用index 需要使用img当前position-1 并考虑边界值的情况
+								//position的替换 不能用img属性中的index 需要使用img当前position-1 并考虑边界值的情况
 								let imgPos = Number(img.getAttribute('position'));
 								imgPos = imgPos < 1 ? array.length-1 : imgPos-1;
 								img.style.transform = array[index];
-								img.setAttribute('position', imgPos);
+								img.setAttribute('position', imgPos)
 							})
 							position -= 1;
+							//每过一段时间移动一次 直到点击的元素到正中间为止
 							let t = setTimeout(() => {
 								clearTimeout(t);
-								rerenderLeft(_imgArr, position);
-							}, interval);
+								rerenderLeft(_imgArr, position)
+							}, 300);
 						})
 					}
 				}
@@ -150,22 +149,24 @@
 				 */
 				function rerenderRight(_imgArr, position){
 					if(position < _imgArr.length && position !== 0){
-						Promise.all(_imgArr).then(val => {
+						_imgArrPromise.then(val => {
+							//存储在未移动前每个图片的transform
 							let array = val.map((item) => item.style.transform);
 							val.map((img, i) => {
-								//数组元素中存有每img的样式，需要错位赋值(当前元素按照position与后一个元素交换)
+								//数组元素中存有每img的样式，需要错位赋值
 								let index = i >= array.length-1 ? 0 : i+1;
-								//position的替换 不能用index 需要使用img当前position-1 并考虑边界值的情况
+								//position的替换 不能用img属性中的index 需要使用img当前position-1 并考虑边界值的情况
 								let imgPos = Number(img.getAttribute('position'));
 								imgPos = imgPos >= array.length-1 ? 0 : imgPos+1;
 								img.style.transform = array[index];
-								img.setAttribute('position', imgPos);
+								img.setAttribute('position', imgPos)
 							})
 							position = position >= _imgArr.length-1 ? 0 : position+1;
+							//每过一段时间移动一次 直到点击的元素到正中间为止
 							let t = setTimeout(() => {
 								clearTimeout(t);
-								rerenderRight(_imgArr, position);
-							}, interval);
+								rerenderRight(_imgArr, position)
+							}, 300);
 						})
 					}
 				}
@@ -173,30 +174,27 @@
 
 			this.destory = function(){
 				_imgArr = [];
-				window.removeEventListener('resize', _resize);
-				this.imgRender();
-				return this;
+				window.removeEventListener('resize', resize);
+				this.imgRender()
 			}
 		}
 	</script>
 	<script type = 'text/javascript'>
 //		let imgArray = new Array(6).fill().map(() => ({ src: './image/ride.gif' }))
-		let imgArray = new Array(12).fill().map(() => {
-			let num = Math.random() * 9 + 1;
-			let src = num > 5 ? '../../image/ride.gif' : '../../image/card.jpg';
+		let imgArray = new Array(15).fill().map(() => {
+			let src = (Math.random() * 9 + 1) > 5 ? '../../image/ride.gif' : '../../image/card.jpg';
 //			let src = '../../image/ride.gif';
-//			let src = '../../image/card1.png';
+//			let src = '../../image/card.jpg';
 			return { src };
 		})
 		let fatherNode = document.getElementById('carousel');
 		let carousel = new Carousel({
-			container: document.body,
+			fatherNode,
 			offsetY: 150,
-			offsetZ: 200,
-			imgProps : { width: 240, height: 180 },
-			interval: 300
+			offsetZ: 150,
+			imgProps : { width: 240, height: 180 }
 		});
 		carousel.setImgArr(imgArray).imgRender();
-		carousel.scene.addEventListener('mousedown', window.mouseRotate.bind(carousel.scene));
+		fatherNode.addEventListener('mousedown', window.mouseRotate.bind(fatherNode));
 	</script>
 </html>
