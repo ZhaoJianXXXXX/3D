@@ -82,26 +82,23 @@
 			 * @parmas {array} imgArr [{ src: 'xxx' }, { src: 'yyy }]
 			 */
 			this.imgRender = function(){
-				let t = setTimeout(() => {
-					//清除所有子节点
-					while(fatherNode.hasChildNodes()){ fatherNode.removeChild(fatherNode.firstChild) }
-					let _this = this;
-					let fatherWidth = fatherNode.offsetWidth;
-					let singleRad = Math.PI * 2 / _imgArr.length;
-					let firstPoint = { ty: offsetY, tz: offsetZ };
-					let test = _imgArrPromise.then(val => val.map((img) => {
-						firstPoint.tx = (fatherWidth-img.width)/2;
-						let index = img.getAttribute('index');
-						let rad = singleRad*index;
-						let tx = firstPoint.tx-firstPoint.tx*Math.sin(rad);
-						let ty = offsetY*Math.cos(rad);
-						let tz = offsetZ*Math.cos(rad);
-						img.style.transform = `translateX(${tx}px) translateY(${ty}px) translateZ(${tz}px)`;
-						img.onclick = () => rotateCarousel(img);
-						fatherNode.appendChild(img);
-					}));
-					clearTimeout(t);
-				}, 0)
+				//清除所有子节点
+				while(fatherNode.hasChildNodes()){ fatherNode.removeChild(fatherNode.firstChild) }
+				let _this = this;
+				let fatherWidth = fatherNode.offsetWidth;
+				let singleRad = Math.PI * 2 / _imgArr.length;
+				let firstPoint = { ty: offsetY, tz: offsetZ };
+				let test = _imgArrPromise.then(val => val.map((img) => {
+					firstPoint.tx = (fatherWidth-img.width)/2;
+					let index = img.getAttribute('position');
+					let rad = singleRad*index;
+					let tx = firstPoint.tx-firstPoint.tx*Math.sin(rad);
+					let ty = offsetY*Math.cos(rad);
+					let tz = offsetZ*Math.cos(rad);
+					img.style.transform = `translateX(${tx}px) translateY(${ty}px) translateZ(${tz}px)`;
+					img.onclick = () => rotateCarousel(img);
+					fatherNode.appendChild(img);
+				}));
 			}
 			/**
 			 * 图片元素点击之后的轮转方法
@@ -176,6 +173,15 @@
 				_imgArr = [];
 				window.removeEventListener('resize', resize);
 				this.imgRender()
+			}
+
+			this.getDetails= function(){
+				console.info('_imgArr',_imgArr)
+				console.info('_imgArrPromise',_imgArrPromise)
+				_imgArrPromise.then(val => {
+					console.info('_imgArrPromise.then', val)
+					val.map(img => { console.info('img.src', img.src) })
+				})
 			}
 		}
 	</script>
