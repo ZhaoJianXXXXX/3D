@@ -64,7 +64,13 @@
 						img.onload = function(){
 							this.height = imgProps && imgProps.height || this.height;
 							this.width = imgProps && imgProps.width || this.width;
-							resolve(this)
+							resolve(this);
+						}
+						img.onerror = function(){
+							this.alt = '该图片加载失败';
+							this.height = imgProps && imgProps.height || this.height;
+							this.width = imgProps && imgProps.width || this.width;
+							resolve(this);
 						}
 					})
 				});
